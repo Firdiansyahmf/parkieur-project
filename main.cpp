@@ -25,15 +25,21 @@ void menuUtama() {
         cin >> pilihan;
 
         if (pilihan == "1") {
+            clearScreen();
             // tambahKendaraan();
         } else if (pilihan == "2") {
+            clearScreen();
         } else if (pilihan == "3") {
+            clearScreen();
             // tampilkanParkir();
         } else if (pilihan == "4") {
+            clearScreen();
             // pengaturan();
         } else if (pilihan == "0") {
+            clearScreen();
             cout << "Keluar dari program.\n";
         } else {
+            clearScreen();
             cout << "Pilihan tidak valid. Silakan pilih antara 0 - 4.\n";
         }
 
