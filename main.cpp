@@ -109,9 +109,6 @@ struct VehicleNode {
 
     ~VehicleNode() {
         // Recursive deletion handled by smart pointers or explicit post-order traversal
-        // For raw pointers, this could lead to stack overflow on deep trees.
-        // A better approach for destructing large BSTs with raw pointers is iterative.
-        // However, given the context of this project, it's likely fine.
         delete left;
         left = nullptr; // Prevent double deletion
         delete right;
