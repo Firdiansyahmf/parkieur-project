@@ -1,8 +1,9 @@
 #include <iostream>
 #include <string>
 #include <limits>    // numeric_limits
-#include <iomanip>   // setw
-#include <cctype>    // tolower, toupper, isalpha, isdigit, isalnum
+#include <iomanip>    // setw
+#include <cctype>     // tolower, toupper, isalpha, isdigit, isalnum
+#include <sstream>    // stringstream for getValidIntegerInput
 
 using namespace std;
 
@@ -11,6 +12,7 @@ using namespace std;
 #else
     #define CLEAR_COMMAND "clear"
 #endif
+
 void clearScreen() {
     system(CLEAR_COMMAND);
 }
@@ -87,7 +89,7 @@ void displayEntryQueue() {
         int current = entryQueue.front;
         for (int i = 0; i < entryQueue.count; ++i) {
             cout << (i + 1) << ". " << entryQueue.vehicles[current].licensePlate
-                    << " (" << entryQueue.vehicles[current].type << ")\n";
+                 << " (" << entryQueue.vehicles[current].type << ")\n";
             current = (current + 1) % CURRENT_QUEUE_SIZE;
         }
         cout << "------------------------------------------\n";
@@ -106,12 +108,17 @@ struct VehicleNode {
         : licensePlate(lp), type(t), floor(f), spot(s), left(nullptr), right(nullptr) {}
 
     ~VehicleNode() {
+        // Recursive deletion handled by smart pointers or explicit post-order traversal
+        // For raw pointers, this could lead to stack overflow on deep trees.
+        // A better approach for destructing large BSTs with raw pointers is iterative.
+        // However, given the context of this project, it's likely fine.
         delete left;
-        left = nullptr;
+        left = nullptr; // Prevent double deletion
         delete right;
-        right = nullptr;
+        right = nullptr; // Prevent double deletion
     }
 };
+
 VehicleNode* parkedVehiclesTree = nullptr;
 
 VehicleNode* insertNode(VehicleNode* node, string licensePlate, string type, int floor, int spot) {
@@ -159,12 +166,12 @@ VehicleNode* deleteNode(VehicleNode* root, string licensePlate) {
     } else {
         if (root->left == nullptr) {
             VehicleNode* temp = root->right;
-            root->right = nullptr;
+            root->right = nullptr; // Detach to prevent recursive deletion
             delete root;
             return temp;
         } else if (root->right == nullptr) {
             VehicleNode* temp = root->left;
-            root->left = nullptr;
+            root->left = nullptr; // Detach to prevent recursive deletion
             delete root;
             return temp;
         }
@@ -308,7 +315,7 @@ void placeVehicle(const Vehicle& v) {
     parkingSpots[floorIndex][typeIndex][spotIndex] = v;
     parkedVehiclesTree = insertNode(parkedVehiclesTree, v.licensePlate, v.type, v.floor, v.spot);
     cout << "Kendaraan " << v.licensePlate << " (" << v.type << ") berhasil parkir di Lantai B"
-              << v.floor << ", Spot " << v.spot << ".\n";
+                 << v.floor << ", Spot " << v.spot << ".\n";
 }
 
 void vehicleEntry() {
@@ -371,7 +378,7 @@ void vehicleEntry() {
     }
 
     if (!parked) {
-        Vehicle newVehicle(licensePlate, vehicleType, 0, 0); 
+        Vehicle newVehicle(licensePlate, vehicleType, 0, 0); // floor and spot 0 indicate in queue
         enqueue(entryQueue, newVehicle);
         cout << "Maaf, parkir " << vehicleType << " penuh di semua lantai. Kendaraan dimasukkan ke antrean.\n";
     }
@@ -448,7 +455,7 @@ void vehicleExit() {
 
             if (!placedFromQueue) {
                 cout << "Spot kosong tidak ditemukan untuk kendaraan dari antrean " << nextVehicle.licensePlate << ". Kendaraan dikembalikan ke antrean.\n";
-                enqueue(entryQueue, nextVehicle);
+                enqueue(entryQueue, nextVehicle); // Re-enqueue if no spot found
             }
         }
     } else {
@@ -463,28 +470,28 @@ void displayParkingStatus() {
     for (int f = 0; f < MAX_FLOORS; ++f) {
         cout << "\nLantai B" << (f + 1) << ":\n";
         
-        cout << "   Mobil (" << MAX_CAR_SPOTS_PER_FLOOR << " slot):\n";
+        cout << "    Mobil (" << MAX_CAR_SPOTS_PER_FLOOR << " slot):\n";
         bool carSpotOccupied = false;
         for (int s = 0; s < MAX_CAR_SPOTS_PER_FLOOR; ++s) {
             if (parkingSpots[f][0][s].licensePlate != "") {
-                cout << "     Spot " << setw(2) << (s + 1) << ": " << parkingSpots[f][0][s].licensePlate << "\n";
+                cout << "      Spot " << setw(2) << (s + 1) << ": " << parkingSpots[f][0][s].licensePlate << "\n";
                 carSpotOccupied = true;
             }
         }
         if (!carSpotOccupied) {
-            cout << "     Semua spot mobil kosong.\n";
+            cout << "      Semua spot mobil kosong.\n";
         }
 
-        cout << "   Motor (" << MAX_MOTOR_SPOTS_PER_FLOOR << " slot):\n";
+        cout << "    Motor (" << MAX_MOTOR_SPOTS_PER_FLOOR << " slot):\n";
         bool motorSpotOccupied = false;
         for (int s = 0; s < MAX_MOTOR_SPOTS_PER_FLOOR; ++s) {
             if (parkingSpots[f][1][s].licensePlate != "") {
-                cout << "     Spot " << setw(2) << (s + 1) << ": " << parkingSpots[f][1][s].licensePlate << "\n";
+                cout << "      Spot " << setw(2) << (s + 1) << ": " << parkingSpots[f][1][s].licensePlate << "\n";
                 motorSpotOccupied = true;
             }
         }
         if (!motorSpotOccupied) {
-            cout << "     Semua spot motor kosong.\n";
+            cout << "      Semua spot motor kosong.\n";
         }
     }
     displayEntryQueue();
@@ -498,10 +505,10 @@ void settingsMenu() {
         clearScreen();
         cout << "\n--- PENGATURAN SISTEM PARKIR ---\n";
         cout << "Kapasitas saat ini:\n";
-        cout << "   Jumlah Lantai         : " << MAX_FLOORS << "\n";
-        cout << "   Spot Mobil per Lantai : " << MAX_CAR_SPOTS_PER_FLOOR << "\n";
-        cout << "   Spot Motor per Lantai : " << MAX_MOTOR_SPOTS_PER_FLOOR << "\n";
-        cout << "   Ukuran Antrean Masuk  : " << CURRENT_QUEUE_SIZE << " (Max: " << MAX_QUEUE_CAPACITY << ")\n";
+        cout << "    Jumlah Lantai         : " << MAX_FLOORS << "\n";
+        cout << "    Spot Mobil per Lantai : " << MAX_CAR_SPOTS_PER_FLOOR << "\n";
+        cout << "    Spot Motor per Lantai : " << MAX_MOTOR_SPOTS_PER_FLOOR << "\n";
+        cout << "    Ukuran Antrean Masuk  : " << CURRENT_QUEUE_SIZE << " (Max: " << MAX_QUEUE_CAPACITY << ")\n";
         cout << "\n1. Ubah Jumlah Lantai\n";
         cout << "2. Ubah Kapasitas Spot Mobil per Lantai\n";
         cout << "3. Ubah Kapasitas Spot Motor per Lantai\n";
@@ -536,17 +543,17 @@ void settingsMenu() {
         } else if (settingsChoice == "2") {
             int newCarSpots = getValidIntegerInput("Masukkan kapasitas spot mobil per lantai baru (min 1, max 50): ", 1, 50);
             if (newCarSpots != MAX_CAR_SPOTS_PER_FLOOR) {
-                 if (parkedVehiclesTree != nullptr) {
-                    cout << "PERINGATAN: Mengubah kapasitas spot mobil akan menginisialisasi ulang sistem dan menghapus semua kendaraan terparkir!\n";
-                    cout << "Apakah Anda yakin ingin melanjutkan? (y/n): ";
-                    char confirm;
-                    cin >> confirm;
-                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                    if (tolower(confirm) != 'y') {
-                        cout << "Operasi dibatalkan.\n";
-                        continue;
+                    if (parkedVehiclesTree != nullptr) {
+                        cout << "PERINGATAN: Mengubah kapasitas spot mobil akan menginisialisasi ulang sistem dan menghapus semua kendaraan terparkir!\n";
+                        cout << "Apakah Anda yakin ingin melanjutkan? (y/n): ";
+                        char confirm;
+                        cin >> confirm;
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        if (tolower(confirm) != 'y') {
+                            cout << "Operasi dibatalkan.\n";
+                            continue;
+                        }
                     }
-                }
                 MAX_CAR_SPOTS_PER_FLOOR = newCarSpots;
                 cout << "Kapasitas spot mobil per lantai diubah menjadi " << MAX_CAR_SPOTS_PER_FLOOR << ".\n";
                 initializeParking();
@@ -556,17 +563,17 @@ void settingsMenu() {
         } else if (settingsChoice == "3") {
             int newMotorSpots = getValidIntegerInput("Masukkan kapasitas spot motor per lantai baru (min 1, max 50): ", 1, 50);
             if (newMotorSpots != MAX_MOTOR_SPOTS_PER_FLOOR) {
-                 if (parkedVehiclesTree != nullptr) {
-                    cout << "PERINGATAN: Mengubah kapasitas spot motor akan menginisialisasi ulang sistem dan menghapus semua kendaraan terparkir!\n";
-                    cout << "Apakah Anda yakin ingin melanjutkan? (y/n): ";
-                    char confirm;
-                    cin >> confirm;
-                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                    if (tolower(confirm) != 'y') {
-                        cout << "Operasi dibatalkan.\n";
-                        continue;
+                    if (parkedVehiclesTree != nullptr) {
+                        cout << "PERINGATAN: Mengubah kapasitas spot motor akan menginisialisasi ulang sistem dan menghapus semua kendaraan terparkir!\n";
+                        cout << "Apakah Anda yakin ingin melanjutkan? (y/n): ";
+                        char confirm;
+                        cin >> confirm;
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        if (tolower(confirm) != 'y') {
+                            cout << "Operasi dibatalkan.\n";
+                            continue;
+                        }
                     }
-                }
                 MAX_MOTOR_SPOTS_PER_FLOOR = newMotorSpots;
                 cout << "Kapasitas spot motor per lantai diubah menjadi " << MAX_MOTOR_SPOTS_PER_FLOOR << ".\n";
                 initializeParking();
@@ -644,6 +651,6 @@ void menuUtama() {
 int main() {
     menuUtama();
     deallocateParkingSpots();
-    delete parkedVehiclesTree; 
+    delete parkedVehiclesTree;
     return 0;
 }
