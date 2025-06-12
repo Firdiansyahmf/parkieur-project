@@ -108,11 +108,10 @@ struct VehicleNode {
         : licensePlate(lp), type(t), floor(f), spot(s), left(nullptr), right(nullptr) {}
 
     ~VehicleNode() {
-        // Recursive deletion handled by smart pointers or explicit post-order traversal
         delete left;
-        left = nullptr; // Prevent double deletion
+        left = nullptr;
         delete right;
-        right = nullptr; // Prevent double deletion
+        right = nullptr;
     }
 };
 
@@ -163,12 +162,12 @@ VehicleNode* deleteNode(VehicleNode* root, string licensePlate) {
     } else {
         if (root->left == nullptr) {
             VehicleNode* temp = root->right;
-            root->right = nullptr; // Detach to prevent recursive deletion
+            root->right = nullptr;
             delete root;
             return temp;
         } else if (root->right == nullptr) {
             VehicleNode* temp = root->left;
-            root->left = nullptr; // Detach to prevent recursive deletion
+            root->left = nullptr;
             delete root;
             return temp;
         }
@@ -183,6 +182,20 @@ VehicleNode* deleteNode(VehicleNode* root, string licensePlate) {
         root->right = deleteNode(root->right, temp->licensePlate);
     }
     return root;
+}
+
+// Fungsi inorder traversal untuk menampilkan kendaraan dari BST
+void inorderTraversalBST(VehicleNode* node) {
+    if (node == nullptr) {
+        return;
+    }
+
+    inorderTraversalBST(node->left); // Kiri
+    cout << "  Plat: " << node->licensePlate
+         << ", Tipe: " << node->type
+         << ", Lantai: B" << node->floor
+         << ", Spot: " << node->spot << "\n"; // Root
+    inorderTraversalBST(node->right); // Kanan
 }
 
 void deallocateParkingSpots() {
@@ -464,6 +477,9 @@ void vehicleExit() {
 
 void displayParkingStatus() {
     cout << "\n--- STATUS PARKIR SAAT INI ---\n";
+
+    // Tampilan berdasarkan lokasi fisik (tetap dipertahankan)
+    cout << "\n--- STATUS PARKIR BERDASARKAN LOKASI --- \n";
     for (int f = 0; f < MAX_FLOORS; ++f) {
         cout << "\nLantai B" << (f + 1) << ":\n";
         
@@ -491,6 +507,15 @@ void displayParkingStatus() {
             cout << "      Semua spot motor kosong.\n";
         }
     }
+
+    // Tampilan berdasarkan inorder traversal dari BST
+    cout << "\n--- KENDARAAN TERPARKIR (Berdasarkan Plat Nomor, urutan Alfabetis) ---\n";
+    if (parkedVehiclesTree == nullptr) {
+        cout << "Belum ada kendaraan terparkir.\n";
+    } else {
+        inorderTraversalBST(parkedVehiclesTree);
+    }
+
     displayEntryQueue();
     cout << "\nTekan ENTER untuk melanjutkan...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -648,6 +673,6 @@ void menuUtama() {
 int main() {
     menuUtama();
     deallocateParkingSpots();
-    delete parkedVehiclesTree;
+    delete parkedVehiclesTree; // Ensures all nodes are deleted.
     return 0;
 }
