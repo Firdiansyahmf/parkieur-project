@@ -17,7 +17,7 @@ using namespace std;
 #endif
 
 void clearScreen() {
-    // system(CLEAR_COMMAND);
+    system(CLEAR_COMMAND);
 }
 
 // --- KONFIGURASI SISTEM PARKIR ---
