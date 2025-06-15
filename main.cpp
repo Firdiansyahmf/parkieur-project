@@ -24,13 +24,14 @@ int MAX_MOTOR_SPOTS_PER_FLOOR = 15;
 
 struct Vehicle {
     string licensePlate;
+    string entryTime;
     string type;
     int floor;
     int spot;
 
-    Vehicle() : licensePlate(""), type(""), floor(0), spot(0) {}
+    Vehicle() : licensePlate(""), type(""), floor(0), spot(0), entryTime("") {}
     Vehicle(string lp, string t, int f, int s)
-        : licensePlate(lp), type(t), floor(f), spot(s) {}
+        : licensePlate(lp), type(t), floor(f), spot(s), entryTime("") {}
 };
 
 Vehicle*** parkingSpots = nullptr;
@@ -328,6 +329,8 @@ void placeVehicle(const Vehicle& v) {
                  << v.floor << ", Spot " << v.spot << ".\n";
 }
 
+string entryTime;
+
 void vehicleEntry() {
     string vehicleType;
     string licensePlate;
@@ -378,7 +381,20 @@ void vehicleEntry() {
     for (int f = 0; f < MAX_FLOORS; ++f) {
         for (int s = 0; s < maxSpots; ++s) {
             if (parkingSpots[f][typeIndex][s].licensePlate == "") {
-                Vehicle newVehicle(licensePlate, vehicleType, f + 1, s + 1);
+                
+    
+    do {
+        entryTime = getLineInput("Masukkan jam masuk (format HH:MM): ");
+        if (entryTime.length() != 5 || entryTime[2] != ':' ||
+            !isdigit(entryTime[0]) || !isdigit(entryTime[1]) ||
+            !isdigit(entryTime[3]) || !isdigit(entryTime[4])) {
+            cout << "Format waktu tidak valid. Gunakan format HH:MM.\n";
+        } else {
+            break;
+        }
+    } while (true);
+    Vehicle newVehicle(licensePlate, vehicleType, f + 1, s + 1);
+    newVehicle.entryTime = entryTime;
                 placeVehicle(newVehicle);
                 parked = true;
                 break;
@@ -389,6 +405,7 @@ void vehicleEntry() {
 
     if (!parked) {
         Vehicle newVehicle(licensePlate, vehicleType, 0, 0); // floor and spot 0 indicate in queue
+        newVehicle.entryTime = entryTime;
         enqueue(entryQueue, newVehicle);
         cout << "Maaf, parkir " << vehicleType << " penuh di semua lantai. Kendaraan dimasukkan ke antrean.\n";
     }
@@ -431,6 +448,37 @@ void vehicleExit() {
         int floorIndex = vehicleNode->floor - 1;
         int spotIndex = vehicleNode->spot - 1;
         int typeIndex = (vehicleNode->type == "mobil") ? 0 : 1;
+
+        
+    string exitTime;
+    do {
+        exitTime = getLineInput("Masukkan jam keluar (format HH:MM): ");
+        if (exitTime.length() != 5 || exitTime[2] != ':' ||
+            !isdigit(exitTime[0]) || !isdigit(exitTime[1]) ||
+            !isdigit(exitTime[3]) || !isdigit(exitTime[4])) {
+            cout << "Format waktu tidak valid. Gunakan format HH:MM.\n";
+        } else {
+            break;
+        }
+    } while (true);
+
+    auto parseTime = [](const string& timeStr) -> int {
+        int hours = stoi(timeStr.substr(0, 2));
+        int minutes = stoi(timeStr.substr(3, 2));
+        return hours * 60 + minutes;
+    };
+
+    int entryMinutes = parseTime(parkingSpots[floorIndex][typeIndex][spotIndex].entryTime);
+    int exitMinutes = parseTime(exitTime);
+    int durationMinutes = exitMinutes - entryMinutes;
+    if (durationMinutes <= 0) durationMinutes = 1;
+
+    int hours = (durationMinutes + 59) / 60;
+    int rate = (vehicleNode->type == "mobil") ? 4000 : 2000;
+    int total = hours * rate;
+
+    cout << "Durasi parkir: " << hours << " jam\n";
+    cout << "Biaya parkir: Rp" << total << "\n";
 
         parkingSpots[floorIndex][typeIndex][spotIndex].licensePlate = "";
         parkingSpots[floorIndex][typeIndex][spotIndex].type = "";
