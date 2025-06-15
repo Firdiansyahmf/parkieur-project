@@ -3,7 +3,10 @@
 #include <limits>    // numeric_limits
 #include <iomanip>    // setw
 #include <cctype>     // tolower, toupper, isalpha, isdigit, isalnum
-#include <sstream>    // stringstream for getValidIntegerInput
+#include <sstream>
+#include <fstream>    // stringstream for getValidIntegerInput
+#include <functional>
+
 
 using namespace std;
 
@@ -14,7 +17,7 @@ using namespace std;
 #endif
 
 void clearScreen() {
-    system(CLEAR_COMMAND);
+    // system(CLEAR_COMMAND);
 }
 
 // --- KONFIGURASI SISTEM PARKIR ---
@@ -330,6 +333,41 @@ void placeVehicle(const Vehicle& v) {
 }
 
 string entryTime;
+void saveParkedVehiclesToCSV() {
+    ofstream file("parkir_data.csv");
+    file << "Plat,Tipe,Lantai,Spot,JamMasuk\n";
+    function<void(VehicleNode*)> saveRecursive = [&](VehicleNode* node) {
+        if (!node) return;
+        saveRecursive(node->left);
+        file << node->licensePlate << "," << node->type << "," << node->floor << "," << node->spot << "," 
+             << parkingSpots[node->floor - 1][(node->type == "mobil" ? 0 : 1)][node->spot - 1].entryTime << "\n";
+        saveRecursive(node->right);
+    };
+    saveRecursive(parkedVehiclesTree);
+    file.close();
+}
+
+void loadParkedVehiclesFromCSV() {
+    ifstream file("parkir_data.csv");
+    if (!file.is_open()) return;
+    string line;
+    getline(file, line); // Skip header
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string plat, tipe, lantaiStr, spotStr, jamMasuk;
+        getline(ss, plat, ',');
+        getline(ss, tipe, ',');
+        getline(ss, lantaiStr, ',');
+        getline(ss, spotStr, ',');
+        getline(ss, jamMasuk, ',');
+        int floor = stoi(lantaiStr);
+        int spot = stoi(spotStr);
+        Vehicle v(plat, tipe, floor, spot);
+        v.entryTime = jamMasuk;
+        placeVehicle(v);
+    }
+    file.close();
+}
 
 void vehicleEntry() {
     string vehicleType;
@@ -396,6 +434,7 @@ void vehicleEntry() {
     Vehicle newVehicle(licensePlate, vehicleType, f + 1, s + 1);
     newVehicle.entryTime = entryTime;
                 placeVehicle(newVehicle);
+                saveParkedVehiclesToCSV();
                 parked = true;
                 break;
             }
@@ -486,6 +525,7 @@ void vehicleExit() {
         parkingSpots[floorIndex][typeIndex][spotIndex].spot = 0;
 
         parkedVehiclesTree = deleteNode(parkedVehiclesTree, licensePlateToExit);
+        saveParkedVehiclesToCSV();
         cout << "Kendaraan dengan plat nomor " << licensePlateToExit
                      << " telah keluar dari Lantai B" << (floorIndex + 1)
                      << ", Spot " << (spotIndex + 1) << ".\n";
@@ -607,6 +647,7 @@ void settingsMenu() {
                 MAX_FLOORS = newFloors;
                 cout << "Jumlah lantai diubah menjadi " << MAX_FLOORS << ".\n";
                 initializeParking();
+    loadParkedVehiclesFromCSV();
             } else {
                 cout << "Jumlah lantai tidak berubah.\n";
             }
@@ -627,6 +668,7 @@ void settingsMenu() {
                 MAX_CAR_SPOTS_PER_FLOOR = newCarSpots;
                 cout << "Kapasitas spot mobil per lantai diubah menjadi " << MAX_CAR_SPOTS_PER_FLOOR << ".\n";
                 initializeParking();
+    loadParkedVehiclesFromCSV();
             } else {
                 cout << "Kapasitas spot mobil per lantai tidak berubah.\n";
             }
@@ -647,6 +689,7 @@ void settingsMenu() {
                 MAX_MOTOR_SPOTS_PER_FLOOR = newMotorSpots;
                 cout << "Kapasitas spot motor per lantai diubah menjadi " << MAX_MOTOR_SPOTS_PER_FLOOR << ".\n";
                 initializeParking();
+    loadParkedVehiclesFromCSV();
             } else {
                 cout << "Kapasitas spot motor per lantai tidak berubah.\n";
             }
@@ -678,6 +721,7 @@ void settingsMenu() {
 void menuUtama() {
     string pilihan;
     initializeParking();
+    loadParkedVehiclesFromCSV();
     cout << "Tekan ENTER untuk melanjutkan...";
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
